@@ -1,0 +1,14 @@
+[Unit]
+Description=ArashiDNS.C
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/bin/arashic %i -l 127.0.0.1:5353 -w 3000
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
