@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using ARSoft.Tools.Net;
 using ARSoft.Tools.Net.Dns;
 
 namespace ArashiDNS
@@ -10,10 +9,20 @@ namespace ArashiDNS
 
         public static void Init()
         {
-            var methods = new DnsMessage().GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic);
-            info = methods[5].ToString() == "Int32 Encode(Boolean, Byte[] ByRef)"
-                ? methods[5]
-                : methods.FirstOrDefault(i => i.ToString()!.Equals("Int32 Encode(Boolean, Byte[] ByRef)"));
+            try
+            {
+                var methods = new DnsMessage().GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic);
+                info = methods[5].ToString() == "Int32 Encode(Boolean, Byte[] ByRef)"
+                    ? methods[5]
+                    : methods.FirstOrDefault(i => i.ToString()!.Equals("Int32 Encode(Boolean, Byte[] ByRef)"));
+            }
+            catch (Exception)
+            {
+                foreach (var item in new DnsMessage().GetType()
+                             .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic))
+                    if (item.ToString() == "Int32 Encode(Boolean, Byte[] ByRef)")
+                        info = item;
+            }
         }
 
         public static byte[] Encode(DnsMessage dnsQMsg)
