@@ -12,7 +12,8 @@ namespace ArashiDNS.C
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
         public static string DohUrl = "https://arashi.eu.org/dns-query";
-        public static TimeSpan Timeout = TimeSpan.FromMilliseconds(500);
+        public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
+        public static Version MyHttpVersion = new(3,0);
 
         private static void Main(string[] args)
         {
@@ -47,9 +48,14 @@ namespace ArashiDNS.C
                 Console.WriteLine("The forwarded upstream is: " + DohUrl);
                 Console.WriteLine("Now listening on: " + listenerEndPoint);
                 Console.WriteLine("Application started. Press Ctrl+C / q to shut down.");
-                while (true)
-                    if (Console.ReadKey().KeyChar == 'q')
-                        Environment.Exit(0);
+                if (!Console.IsInputRedirected && Console.KeyAvailable)
+                {
+                    while (true)
+                        if (Console.ReadKey().KeyChar == 'q')
+                            Environment.Exit(0);
+                }
+                EventWaitHandle wait = new AutoResetEvent(false);
+                while(true) wait.WaitOne();
             });
             
             cmd.Execute(args);
@@ -61,23 +67,29 @@ namespace ArashiDNS.C
             try
             {
                 var response = query.CreateResponseInstance();
-                query.Encode(true, out var queryData);
+                query.Encode(false, out var queryData);
                 var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
                     .Replace('+', '-').Replace('/', '_');
 
                 var client = ClientFactory!.CreateClient("doh");
+                client.DefaultRequestVersion = MyHttpVersion;
                 client.Timeout = Timeout;
-                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
 
+                var httpResponse = await client.GetAsync($"{DohUrl}?dns={dnsStr}");
                 response.AnswerRecords.AddRange(DnsMessage
-                    .Parse(await client.GetByteArrayAsync($"{DohUrl}?dns={dnsStr}"))
+                    .Parse(await httpResponse.Content.ReadAsByteArrayAsync())
                     .AnswerRecords);
 
                 e.Response = response;
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
+                if (exception.ToString().Contains("H3"))
+                    MyHttpVersion = new Version(2, 0);
+                else
+                    Console.WriteLine(exception);
+
                 var response = query.CreateResponseInstance();
                 response.ReturnCode = ReturnCode.ServerFailure;
                 e.Response = response;
