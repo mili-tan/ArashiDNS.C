@@ -85,7 +85,7 @@ namespace ArashiDNS.C
             }
             catch (Exception exception)
             {
-                if (exception.ToString().Contains("H3"))
+                if (exception.InnerException is HttpProtocolException)
                     MyHttpVersion = new Version(2, 0);
                 else
                     Console.WriteLine(exception);
