@@ -61,7 +61,8 @@ namespace ArashiDNS.C
             try
             {
                 var response = query.CreateResponseInstance();
-                var dnsStr = Convert.ToBase64String(DnsEncoder.Encode(query)).TrimEnd('=')
+                query.Encode(true, out var queryData);
+                var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
                     .Replace('+', '-').Replace('/', '_');
 
                 var client = ClientFactory!.CreateClient("doh");
