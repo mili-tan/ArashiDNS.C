@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.NetworkInformation;
 using ARSoft.Tools.Net.Dns;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +12,7 @@ namespace ArashiDNS.C
     {
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
-        public static string DohUrl = "https://arashi-hk.azurewebsites.net/dns-query";
+        public static string DohUrl = "https://arashi.eu.org/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version MyHttpVersion = new(3,0);
         public static bool UseCache = true;
@@ -41,10 +42,11 @@ namespace ArashiDNS.C
                 var listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 15353);
                 var listenerCount = Environment.ProcessorCount * 2;
 
-                if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
-                if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
-                if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (nOption.HasValue()) UseCache = false;
+                if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
+                if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
+                if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
+                else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
 
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount, listenerEndPoint.Port);
                 dnsServer.QueryReceived += ServerOnQueryReceived;
@@ -105,6 +107,22 @@ namespace ArashiDNS.C
                 var response = query.CreateResponseInstance();
                 response.ReturnCode = ReturnCode.ServerFailure;
                 e.Response = response;
+            }
+        }
+
+        public static bool PortIsUse(int port)
+        {
+            try
+            {
+                var ipEndPointsTcp = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners();
+                var ipEndPointsUdp = IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners();
+
+                return ipEndPointsTcp.Any(endPoint => endPoint.Port == port)
+                       || ipEndPointsUdp.Any(endPoint => endPoint.Port == port);
+            }
+            catch (Exception)
+            {
+                return true;
             }
         }
     }
