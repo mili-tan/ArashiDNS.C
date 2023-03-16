@@ -12,7 +12,7 @@ namespace ArashiDNS.C
     {
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
-        public static string DohUrl = "https://hk.pro.xns.one/@milkey233/dns-query";
+        public static string DohUrl = "https://dns.cloudflare.com/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version MyHttpVersion = new(3,0);
         public static bool UseCache = true;
