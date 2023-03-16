@@ -11,9 +11,10 @@ namespace ArashiDNS.C
     {
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
-        public static string DohUrl = "https://arashi.eu.org/dns-query";
+        public static string DohUrl = "https://arashi-hk.azurewebsites.net/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version MyHttpVersion = new(3,0);
+        public static bool UseCache = true;
 
         private static void Main(string[] args)
         {
@@ -28,10 +29,12 @@ namespace ArashiDNS.C
             var isZh = Thread.CurrentThread.CurrentCulture.Name.Contains("zh");
             var urlArgument = cmd.Argument("url", isZh ? "目标 DNS over HTTPS 服务器 URL。" : "Target DNS over HTTPS service URL");
             var ipOption = cmd.Option<string>("-l|--listen <IPEndPoint>",
-                isZh ? "监听的地址与端口" : "Set server listening address and port",
+                isZh ? "监听的地址与端口。" : "Set server listening address and port",
                 CommandOptionType.SingleValue);
             var wOption = cmd.Option<int>("-w <timeout>",
                 isZh ? "等待回复的超时时间(毫秒)。" : "Timeout time to wait for reply", CommandOptionType.SingleValue);
+            var nOption = cmd.Option("-n", isZh ? "不使用内置缓存。" : "Do not use embedded cache",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
@@ -41,6 +44,7 @@ namespace ArashiDNS.C
                 if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
                 if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
+                if (nOption.HasValue()) UseCache = false;
 
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount, listenerEndPoint.Port);
                 dnsServer.QueryReceived += ServerOnQueryReceived;
@@ -67,6 +71,12 @@ namespace ArashiDNS.C
             try
             {
                 var response = query.CreateResponseInstance();
+                if (UseCache && DnsCache.Contains(query.Questions))
+                {
+                    response.AnswerRecords.AddRange(DnsCache.Get(query.Questions));
+                    return;
+                }
+
                 query.Encode(false, out var queryData);
                 var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
                     .Replace('+', '-').Replace('/', '_');
@@ -77,9 +87,11 @@ namespace ArashiDNS.C
                 client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
 
                 var httpResponse = await client.GetAsync($"{DohUrl}?dns={dnsStr}");
-                response.AnswerRecords.AddRange(DnsMessage
-                    .Parse(await httpResponse.Content.ReadAsByteArrayAsync())
-                    .AnswerRecords);
+                var dnsResponse = DnsMessage.Parse(await httpResponse.Content.ReadAsByteArrayAsync());
+                response.AnswerRecords.AddRange(dnsResponse.AnswerRecords);
+
+                if (UseCache && httpResponse.IsSuccessStatusCode && dnsResponse.ReturnCode == ReturnCode.NoError)
+                    DnsCache.Add(query.Questions, dnsResponse.AnswerRecords);
 
                 e.Response = response;
             }
