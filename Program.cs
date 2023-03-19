@@ -3,6 +3,8 @@ using System.Net.NetworkInformation;
 using ARSoft.Tools.Net.Dns;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.DependencyInjection;
+using Org.BouncyCastle.Utilities.Net;
+using IPAddress = System.Net.IPAddress;
 
 // ReSharper disable FunctionNeverReturns
 
