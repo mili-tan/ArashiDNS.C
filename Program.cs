@@ -17,7 +17,9 @@ namespace ArashiDNS.C
         public static string DohUrl = "https://dns.cloudflare.com/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version MyHttpVersion = new(3,0);
+        public static IPAddress EcsAddress = IPAddress.Any;
         public static bool UseCache = true;
+        public static bool UseEcs = true;
 
         private static void Main(string[] args)
         {
@@ -38,6 +40,8 @@ namespace ArashiDNS.C
                 isZh ? "等待回复的超时时间(毫秒)。" : "Timeout time to wait for reply", CommandOptionType.SingleValue);
             var nOption = cmd.Option("-n", isZh ? "不使用内置缓存。" : "Do not use embedded cache",
                 CommandOptionType.NoValue);
+            var eOption = cmd.Option("-e", isZh ? "不添加 EDNS Client Subnet。" : "Do not add EDNS Client Subnet",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
@@ -45,10 +49,24 @@ namespace ArashiDNS.C
                 var listenerCount = Environment.ProcessorCount * 2;
 
                 if (nOption.HasValue()) UseCache = false;
+                if (eOption.HasValue()) UseEcs = false;
                 if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
+
+                if (UseEcs)
+                {
+                    using var httpClient = new HttpClient {DefaultRequestHeaders = {{"User-Agent", "ArashiDNS.C/0.1"}}};
+                    try
+                    {
+                        EcsAddress = IPAddress.Parse(httpClient.GetStringAsync("https://ip.mili.one/").Result);
+                    }
+                    catch (Exception)
+                    {
+                        EcsAddress = IPAddress.Parse(httpClient.GetStringAsync("http://whatismyip.akamai.com/").Result);
+                    }
+                }
 
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount, listenerEndPoint.Port);
                 dnsServer.QueryReceived += ServerOnQueryReceived;
@@ -75,12 +93,14 @@ namespace ArashiDNS.C
             try
             {
                 var response = query.CreateResponseInstance();
+
                 if (UseCache && DnsCache.Contains(query.Questions))
                 {
                     response.AnswerRecords.AddRange(DnsCache.Get(query.Questions));
                     e.Response = response;
                     return;
                 }
+                if (UseEcs && !DnsEcs.IsEcsEnable(query)) query = DnsEcs.AddEcs(query, EcsAddress);
 
                 query.Encode(false, out var queryData);
                 var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
