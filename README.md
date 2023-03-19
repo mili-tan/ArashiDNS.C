@@ -2,8 +2,8 @@
 The super easy way DNS over HTTPS Client
 
 ```
-wget https://github.com/mili-tan/ArashiDNS.C/releases/latest/download/arashic-linux-x64 -O /usr/bin/arashic
-wget https://raw.githubusercontent.com/mili-tan/ArashiDNS.C/main/arashic%40.service -O /etc/systemd/system/arashic@.service
+wget https://t.mili.one/arashic-linux-x64 -O /usr/bin/arashic
+wget https://t.mili.one/arashic.service -O /etc/systemd/system/arashic@.service
 chmod +x /usr/bin/arashic 
 systemctl enable arashic@dns.cloudflare.com --now
 ```
