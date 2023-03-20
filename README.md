@@ -13,10 +13,13 @@ Usage: ArashiDNS.C [options] <url>
 
 Arguments:
   url                       Target DNS over HTTPS service URL
-
+  
 Options:
   -?|-h|--help              Show help information.
   -l|--listen <IPEndPoint>  Set server listening address and port
   -w <timeout>              Timeout time to wait for reply
   -n                        Do not use embedded cache
+  -e                        Do not add EDNS Client Subnet
+  -h2                       Force HTTP/2
+  -h3                       Force HTTP/3
 ```
