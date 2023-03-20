@@ -44,7 +44,7 @@ namespace ArashiDNS.C
                 CommandOptionType.NoValue);
             var h2Option = cmd.Option("-h2", isZh ? "强制使用 HTTP/2。" : "Force HTTP/2",
                 CommandOptionType.NoValue);
-            var h3Option = cmd.Option("-h3", isZh ? "强制使用 HTTP/3。" : "Force HTTP/3",
+            var h3Option = cmd.Option("-h3", isZh ? "强制使用 HTTP/3。(需要 libmsquic 库)" : "Force HTTP/3 (requires libmsquic)",
                 CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
