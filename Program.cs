@@ -16,6 +16,7 @@ namespace ArashiDNS.C
         public static string DohUrl = "https://dns.cloudflare.com/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version MyHttpVersion = new(3,0);
+        public static HttpVersionPolicy VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         public static IPAddress EcsAddress = IPAddress.Any;
         public static bool UseCache = true;
         public static bool UseEcs = true;
@@ -41,6 +42,10 @@ namespace ArashiDNS.C
                 CommandOptionType.NoValue);
             var eOption = cmd.Option("-e", isZh ? "不添加 EDNS Client Subnet。" : "Do not add EDNS Client Subnet",
                 CommandOptionType.NoValue);
+            var h2Option = cmd.Option("-h2", isZh ? "强制使用 HTTP/2。" : "Force HTTP/2",
+                CommandOptionType.NoValue);
+            var h3Option = cmd.Option("-h3", isZh ? "强制使用 HTTP/3。" : "Force HTTP/3",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
@@ -53,6 +58,16 @@ namespace ArashiDNS.C
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
+                if (h3Option.HasValue())
+                {
+                    VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    MyHttpVersion = new Version(3, 0);
+                }
+                else if (h2Option.HasValue())
+                {
+                    VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    MyHttpVersion = new Version(2, 0);
+                }
 
                 if (UseEcs)
                 {
@@ -107,6 +122,7 @@ namespace ArashiDNS.C
 
                 var client = ClientFactory!.CreateClient("doh");
                 client.DefaultRequestVersion = MyHttpVersion;
+                client.DefaultVersionPolicy = VersionPolicy;
                 client.Timeout = Timeout;
                 client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
 
