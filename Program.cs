@@ -111,32 +111,22 @@ namespace ArashiDNS.C
             if (e.Query is not DnsMessage query) return;
             try
             {
-                var response = query.CreateResponseInstance();
-
-                if (UseCache && DnsCache.Contains(query.Questions))
+                if (UseCache && DnsCacheMatch(query, out var cacheMessage))
                 {
-                    response.AnswerRecords.AddRange(DnsCache.Get(query.Questions));
-                    e.Response = response;
+                    e.Response = cacheMessage;
                     return;
                 }
 
-                if (UseEcs && !DnsEcs.IsEcsEnable(query)) query = DnsEcs.AddEcs(query, EcsAddress);
+                if (UseEcs && !DnsEcs.IsEcsEnable(query))
+                    query = DnsEcs.AddEcs(query, EcsAddress);
 
-                query.Encode(false, out var queryData);
-                var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
-                    .Replace('+', '-').Replace('/', '_');
-
-                var dohResponse = DnsMessage.Parse(
-                    await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
-                response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
-                response.ReturnCode = dohResponse.ReturnCode;
-                e.Response = response;
-                //e.Response = dohResponse;
+                var dohResponse = await DnsMessageQuery(query);
 
                 if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError)
                     DnsCache.Add(query.Questions, dohResponse.AnswerRecords);
-
                 if (UseLog) PrintDnsMessage(dohResponse);
+
+                e.Response = dohResponse;
             }
             catch (Exception exception)
             {
@@ -185,6 +175,29 @@ namespace ArashiDNS.C
             Console.Write($"R: {message.ReturnCode} ");
             foreach (var item in message.AnswerRecords) Console.Write($" A:{item} ");
             Console.Write(Environment.NewLine);
+        }
+
+        public static bool DnsCacheMatch(DnsMessage query, out DnsMessage message)
+        {
+            var contains = DnsCache.Contains(query.Questions);
+            message = query.CreateResponseInstance();
+            if (contains) message.AnswerRecords.AddRange(DnsCache.Get(query.Questions));
+            return contains;
+        }
+
+        public static async Task<DnsMessage> DnsMessageQuery(DnsMessage query)
+        {
+            query.Encode(false, out var queryData);
+            var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
+                .Replace('+', '-').Replace('/', '_');
+
+            var response = query.CreateResponseInstance();
+            var dohResponse = DnsMessage.Parse(
+                await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
+
+            response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
+            response.ReturnCode = dohResponse.ReturnCode;
+            return response;
         }
     }
 }
