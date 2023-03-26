@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿#nullable enable
+using System.Net;
 using System.Net.NetworkInformation;
 using ARSoft.Tools.Net.Dns;
 using McMaster.Extensions.CommandLineUtils;
@@ -15,11 +16,12 @@ namespace ArashiDNS.C
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
         public static string DohUrl = "https://dns.cloudflare.com/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
-        public static Version MyHttpVersion = new(3,0);
-        public static HttpVersionPolicy VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        public static Version TargetHttpVersion = new(3,0);
+        public static HttpVersionPolicy TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         public static IPAddress EcsAddress = IPAddress.Any;
         public static bool UseCache = true;
         public static bool UseEcs = true;
+        public static bool UseLog = false;
 
         private static void Main(string[] args)
         {
@@ -46,6 +48,8 @@ namespace ArashiDNS.C
                 CommandOptionType.NoValue);
             var h3Option = cmd.Option("-h3", isZh ? "强制使用 HTTP/3。(需要 libmsquic 库)" : "Force HTTP/3 (requires libmsquic)",
                 CommandOptionType.NoValue);
+            var logOption = cmd.Option("-log", isZh ? "打印查询与响应日志。" : "Print query and response logs",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
@@ -54,19 +58,20 @@ namespace ArashiDNS.C
 
                 if (nOption.HasValue()) UseCache = false;
                 if (eOption.HasValue()) UseEcs = false;
+                if (logOption.HasValue()) UseLog = true;
                 if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
                 if (h3Option.HasValue())
                 {
-                    VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-                    MyHttpVersion = new Version(3, 0);
+                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    TargetHttpVersion = new Version(3, 0);
                 }
                 else if (h2Option.HasValue())
                 {
-                    VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-                    MyHttpVersion = new Version(2, 0);
+                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    TargetHttpVersion = new Version(2, 0);
                 }
 
                 if (UseEcs)
@@ -114,6 +119,7 @@ namespace ArashiDNS.C
                     e.Response = response;
                     return;
                 }
+
                 if (UseEcs && !DnsEcs.IsEcsEnable(query)) query = DnsEcs.AddEcs(query, EcsAddress);
 
                 query.Encode(false, out var queryData);
@@ -121,24 +127,34 @@ namespace ArashiDNS.C
                     .Replace('+', '-').Replace('/', '_');
 
                 var client = ClientFactory!.CreateClient("doh");
-                client.DefaultRequestVersion = MyHttpVersion;
-                client.DefaultVersionPolicy = VersionPolicy;
+                client.DefaultRequestVersion = TargetHttpVersion;
+                client.DefaultVersionPolicy = TargetVersionPolicy;
                 client.Timeout = Timeout;
                 client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
 
-                var httpResponse = await client.GetAsync($"{DohUrl}?dns={dnsStr}");
-                var dnsResponse = DnsMessage.Parse(await httpResponse.Content.ReadAsByteArrayAsync());
-                response.AnswerRecords.AddRange(dnsResponse.AnswerRecords);
-
-                if (UseCache && httpResponse.IsSuccessStatusCode && dnsResponse.ReturnCode == ReturnCode.NoError)
-                    DnsCache.Add(query.Questions, dnsResponse.AnswerRecords);
-
+                var dohResponse = DnsMessage.Parse(await client.GetByteArrayAsync($"{DohUrl}?dns={dnsStr}"));
+                response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
+                response.ReturnCode = dohResponse.ReturnCode;
                 e.Response = response;
+                //e.Response = dohResponse;
+
+                if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError)
+                    DnsCache.Add(query.Questions, dohResponse.AnswerRecords);
+
+                if (UseLog)
+                {
+                    Console.Write($"Q: {query.Questions.FirstOrDefault()} ");
+                    Console.Write($"R: {dohResponse.ReturnCode} ");
+                    foreach (var item in dohResponse.AnswerRecords) Console.Write($" A:{item} ");
+                    Console.Write(Environment.NewLine);
+                }
             }
             catch (Exception exception)
             {
+                Console.Write(Environment.NewLine);
+
                 if (exception.InnerException is HttpProtocolException)
-                    MyHttpVersion = new Version(2, 0);
+                    TargetHttpVersion = new Version(2, 0);
                 else
                     Console.WriteLine(exception);
 
