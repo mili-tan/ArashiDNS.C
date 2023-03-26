@@ -126,14 +126,8 @@ namespace ArashiDNS.C
                 var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
                     .Replace('+', '-').Replace('/', '_');
 
-                var client = ClientFactory!.CreateClient("doh");
-                client.DefaultRequestVersion = TargetHttpVersion;
-                client.DefaultVersionPolicy = TargetVersionPolicy;
-                client.Timeout = Timeout;
-                client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
-
                 var dohResponse = DnsMessage.Parse(
-                    await client.GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
+                    await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
                 response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
                 response.ReturnCode = dohResponse.ReturnCode;
                 e.Response = response;
@@ -142,13 +136,7 @@ namespace ArashiDNS.C
                 if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError)
                     DnsCache.Add(query.Questions, dohResponse.AnswerRecords);
 
-                if (UseLog)
-                {
-                    Console.Write($"Q: {query.Questions.FirstOrDefault()} ");
-                    Console.Write($"R: {dohResponse.ReturnCode} ");
-                    foreach (var item in dohResponse.AnswerRecords) Console.Write($" A:{item} ");
-                    Console.Write(Environment.NewLine);
-                }
+                if (UseLog) PrintDnsMessage(dohResponse);
             }
             catch (Exception exception)
             {
@@ -179,6 +167,24 @@ namespace ArashiDNS.C
             {
                 return true;
             }
+        }
+
+        public static HttpClient CreateHttpClient(string name = "doh")
+        {
+            var client = ClientFactory!.CreateClient(name);
+            client.DefaultRequestVersion = TargetHttpVersion;
+            client.DefaultVersionPolicy = TargetVersionPolicy;
+            client.Timeout = Timeout;
+            client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
+            return client;
+        }
+
+        public static void PrintDnsMessage(DnsMessage message)
+        {
+            Console.Write($"Q: {message.Questions.FirstOrDefault()} ");
+            Console.Write($"R: {message.ReturnCode} ");
+            foreach (var item in message.AnswerRecords) Console.Write($" A:{item} ");
+            Console.Write(Environment.NewLine);
         }
     }
 }
