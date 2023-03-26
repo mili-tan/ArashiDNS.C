@@ -132,7 +132,8 @@ namespace ArashiDNS.C
                 client.Timeout = Timeout;
                 client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
 
-                var dohResponse = DnsMessage.Parse(await client.GetByteArrayAsync($"{DohUrl}?dns={dnsStr}"));
+                var dohResponse = DnsMessage.Parse(
+                    await client.GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
                 response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
                 response.ReturnCode = dohResponse.ReturnCode;
                 e.Response = response;
