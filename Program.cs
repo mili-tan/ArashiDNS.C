@@ -94,6 +94,7 @@ namespace ArashiDNS.C
                 dnsServer.QueryReceived += ServerOnQueryReceived;
                 dnsServer.Start();
                 Console.WriteLine("The forwarded upstream is: " + DohUrl);
+                Console.WriteLine("The backup upstream is: " + BackupDohUrl);
                 Console.WriteLine("Now listening on: " + listenerEndPoint);
                 Console.WriteLine("Application started. Press Ctrl+C / q to shut down.");
                 if (!Console.IsInputRedirected && Console.KeyAvailable)
