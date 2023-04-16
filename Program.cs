@@ -1,5 +1,4 @@
-﻿#nullable enable
-using System.Net;
+﻿using System.Net;
 using System.Net.NetworkInformation;
 using ARSoft.Tools.Net.Dns;
 using McMaster.Extensions.CommandLineUtils;
@@ -15,6 +14,7 @@ namespace ArashiDNS.C
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
         public static string DohUrl = "https://dns.cloudflare.com/dns-query";
+        public static string BackupDohUrl = "https://dns.quad9.net/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version TargetHttpVersion = new(3,0);
         public static HttpVersionPolicy TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
@@ -34,7 +34,8 @@ namespace ArashiDNS.C
             };
             cmd.HelpOption("-?|-h|--help");
             var isZh = Thread.CurrentThread.CurrentCulture.Name.Contains("zh");
-            var urlArgument = cmd.Argument("url", isZh ? "目标 DNS over HTTPS 服务器 URL。" : "Target DNS over HTTPS service URL");
+            var urlArgument = cmd.Argument("target", isZh ? "目标 DNS over HTTPS 服务器 URL。" : "Target DNS over HTTPS service URL");
+            var urlBackupArgument = cmd.Argument("backup", isZh ? "备份 DNS over HTTPS 服务器 URL。" : "Backup DNS over HTTPS service URL");
             var ipOption = cmd.Option<string>("-l|--listen <IPEndPoint>",
                 isZh ? "监听的地址与端口。" : "Set server listening address and port",
                 CommandOptionType.SingleValue);
@@ -60,9 +61,11 @@ namespace ArashiDNS.C
                 if (eOption.HasValue()) UseEcs = false;
                 if (logOption.HasValue()) UseLog = true;
                 if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
+                if (urlBackupArgument.HasValue) BackupDohUrl = urlBackupArgument.Value!;
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
+
                 if (h3Option.HasValue())
                 {
                     TargetVersionPolicy = HttpVersionPolicy.RequestVersionExact;
@@ -192,8 +195,20 @@ namespace ArashiDNS.C
                 .Replace('+', '-').Replace('/', '_');
 
             var response = query.CreateResponseInstance();
-            var dohResponse = DnsMessage.Parse(
-                await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
+            DnsMessage dohResponse;
+            try
+            {
+                dohResponse = DnsMessage.Parse(
+                    await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
+                // if (dohResponse.ReturnCode is ReturnCode.ServerFailure or ReturnCode.Refused)
+                //     throw new Exception("Response code exception");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                dohResponse = DnsMessage.Parse(
+                    await CreateHttpClient().GetByteArrayAsync($"{BackupDohUrl}?ct=application/dns-message&dns={dnsStr}"));
+            }
 
             response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
             response.ReturnCode = dohResponse.ReturnCode;
