@@ -201,12 +201,12 @@ namespace ArashiDNS.C
             {
                 dohResponse = DnsMessage.Parse(
                     await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
-                // if (dohResponse.ReturnCode is ReturnCode.ServerFailure or ReturnCode.Refused)
-                //     throw new Exception("Response code exception");
+                if (dohResponse.ReturnCode is not (ReturnCode.NoError or ReturnCode.NxDomain))
+                    throw new Exception("ReturnCode Exception " + response.ReturnCode);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine("E:" + e.Message);
                 dohResponse = DnsMessage.Parse(
                     await CreateHttpClient().GetByteArrayAsync($"{BackupDohUrl}?ct=application/dns-message&dns={dnsStr}"));
             }
