@@ -128,7 +128,7 @@ namespace ArashiDNS.C
 
                 if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError)
                     DnsCache.Add(query.Questions, dohResponse.AnswerRecords);
-                if (UseLog) PrintDnsMessage(dohResponse);
+                if (UseLog) await Task.Run(() => PrintDnsMessage(dohResponse));
 
                 e.Response = dohResponse;
             }
@@ -138,8 +138,7 @@ namespace ArashiDNS.C
 
                 if (exception.InnerException is HttpProtocolException)
                     TargetHttpVersion = new Version(2, 0);
-                else
-                    Console.WriteLine(exception);
+                else Console.WriteLine(exception);
 
                 var response = query.CreateResponseInstance();
                 response.ReturnCode = ReturnCode.ServerFailure;
