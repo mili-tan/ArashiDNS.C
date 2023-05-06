@@ -25,3 +25,9 @@ Options:
 ```
 
 HTTP/3 support on Linux requires libmsquic, see [how to install it](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Net.Quic/readme.md#Linux).
+
+## License
+
+Copyright (c) 2020 Milkey Tan. Code released under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/). 
+
+<sup>ArashiDNS™ is a trademark of Milkey Tan.</sup>
