@@ -8,11 +8,11 @@ WORKDIR /src
 COPY ["ArashiDNS.C.csproj", "."]
 RUN dotnet restore "./ArashiDNS.C.csproj"
 COPY . .
-WORKDIR "/src/."
-RUN dotnet build "ArashiDNS.C.csproj" -c Release -o /app/build
+WORKDIR /src
+RUN dotnet build "ArashiDNS.C.csproj" -c Release -o /app/build /p:PublishSingleFile=false /p:PublishTrimmed=false
 
 FROM build AS publish
-RUN dotnet publish "ArashiDNS.C.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "ArashiDNS.C.csproj" -c Release -o /app/publish /p:PublishSingleFile=false /p:PublishTrimmed=false
 
 FROM base AS final
 WORKDIR /app
