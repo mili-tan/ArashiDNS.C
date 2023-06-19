@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ArashiDNS.C": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}
