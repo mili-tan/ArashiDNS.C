@@ -5,13 +5,14 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS build
 WORKDIR /src
-RUN dotnet restore 
+COPY ["/ArashiDNS.C.csproj", "/"]
+RUN dotnet restore "/ArashiDNS.C.csproj"
 COPY . .
 WORKDIR /src
-RUN dotnet build -c Release -o /app/build /p:PublishSingleFile=false /p:PublishTrimmed=false
+RUN dotnet build -c "ArashiDNS.C.csproj" Release -o /app/build /p:PublishSingleFile=false /p:PublishTrimmed=false
 
 FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish /p:PublishSingleFile=false /p:PublishTrimmed=false
+RUN dotnet publish -c "ArashiDNS.C.csproj" Release -o /app/publish /p:PublishSingleFile=false /p:PublishTrimmed=false
 
 FROM base AS final
 WORKDIR /app
