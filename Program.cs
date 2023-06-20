@@ -34,8 +34,10 @@ namespace ArashiDNS.C
             };
             cmd.HelpOption("-?|-h|--help");
             var isZh = Thread.CurrentThread.CurrentCulture.Name.Contains("zh");
-            var urlArgument = cmd.Argument("target", isZh ? "目标 DNS over HTTPS 服务器 URL。" : "Target DNS over HTTPS service URL");
-            var urlBackupArgument = cmd.Argument("backup", isZh ? "备份 DNS over HTTPS 服务器 URL。" : "Backup DNS over HTTPS service URL");
+            var urlArgument = cmd.Argument("target",
+                isZh ? "目标 DNS over HTTPS 服务器 URL。" : "Target DNS over HTTPS service URL");
+            var urlBackupArgument = cmd.Argument("backup",
+                isZh ? "备份 DNS over HTTPS 服务器 URL。" : "Backup DNS over HTTPS service URL");
             var ipOption = cmd.Option<string>("-l|--listen <IPEndPoint>",
                 isZh ? "监听的地址与端口。" : "Set server listening address and port",
                 CommandOptionType.SingleValue);
@@ -47,7 +49,8 @@ namespace ArashiDNS.C
                 CommandOptionType.NoValue);
             var h2Option = cmd.Option("-h2", isZh ? "强制使用 HTTP/2。" : "Force HTTP/2",
                 CommandOptionType.NoValue);
-            var h3Option = cmd.Option("-h3", isZh ? "强制使用 HTTP/3。(需要 libmsquic 库)" : "Force HTTP/3 (requires libmsquic)",
+            var h3Option = cmd.Option("-h3",
+                isZh ? "强制使用 HTTP/3。(需要 libmsquic 库)" : "Force HTTP/3 (requires libmsquic)",
                 CommandOptionType.NoValue);
             var logOption = cmd.Option("-log", isZh ? "打印查询与响应日志。" : "Print query and response logs",
                 CommandOptionType.NoValue);
@@ -65,6 +68,9 @@ namespace ArashiDNS.C
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
+                else if (File.Exists("/.dockerenv") ||
+                         Environment.GetEnvironmentVariables().Contains("ARASHI_RUNNING_IN_CONTAINER"))
+                    listenerEndPoint = new IPEndPoint(IPAddress.Any, 53);
 
                 if (h3Option.HasValue())
                 {
@@ -90,7 +96,8 @@ namespace ArashiDNS.C
                     }
                 }
 
-                var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount, listenerEndPoint.Port);
+                var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount,
+                    listenerEndPoint.Port);
                 dnsServer.QueryReceived += ServerOnQueryReceived;
                 dnsServer.Start();
                 Console.WriteLine("The forwarded upstream is: " + DohUrl);
@@ -103,10 +110,11 @@ namespace ArashiDNS.C
                         if (Console.ReadKey().KeyChar == 'q')
                             Environment.Exit(0);
                 }
+
                 EventWaitHandle wait = new AutoResetEvent(false);
-                while(true) wait.WaitOne();
+                while (true) wait.WaitOne();
             });
-            
+
             cmd.Execute(args);
         }
 
