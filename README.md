@@ -7,7 +7,7 @@ wget https://t.mili.one/arashic.service -O /etc/systemd/system/arashic@.service
 chmod +x /usr/bin/arashic 
 systemctl enable arashic@dns.cloudflare.com --now
 ```
-
+OR using Docker. `docker run -d -p 54:53 ghcr.io/mili-tan/arashidns.c https://arashi.eu.org/dns-query` 
 ```
 Usage: ArashiDNS.C [options] <url>
 
