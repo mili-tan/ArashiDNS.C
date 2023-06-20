@@ -17,4 +17,5 @@ RUN dotnet publish "ArashiDNS.C.csproj" -c Release -o /app/publish /p:UseAppHost
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+EXPOSE 53
 ENTRYPOINT ["dotnet", "ArashiDNS.C.dll"]
