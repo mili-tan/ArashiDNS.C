@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.NetworkInformation;
+using ARSoft.Tools.Net;
 using ARSoft.Tools.Net.Dns;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,8 @@ namespace ArashiDNS.C
         public static bool UseCache = true;
         public static bool UseEcs = true;
         public static bool UseLog = false;
+        public static DomainName DohDomain = DomainName.Parse("dns.cloudflare.com");
+        public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
 
         private static void Main(string[] args)
         {
@@ -96,6 +99,9 @@ namespace ArashiDNS.C
                     }
                 }
 
+                DohDomain = DomainName.Parse(new Uri(DohUrl).Host);
+                BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
+
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount,
                     listenerEndPoint.Port);
                 dnsServer.QueryReceived += ServerOnQueryReceived;
@@ -123,6 +129,12 @@ namespace ArashiDNS.C
             if (e.Query is not DnsMessage query) return;
             try
             {
+                if (query.Questions.First().Name.IsEqualOrSubDomainOf(DohDomain) ||
+                    query.Questions.First().Name.IsEqualOrSubDomainOf(BackupDohDomain))
+                {
+                    e.Response = await new DnsClient(IPAddress.Parse("8.8.8.8"), 1000).SendMessageAsync(query);
+                    return;
+                }
                 if (UseCache && DnsCacheMatch(query, out var cacheMessage))
                 {
                     e.Response = cacheMessage;
