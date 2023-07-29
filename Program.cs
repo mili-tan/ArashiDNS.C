@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using ARSoft.Tools.Net;
 using ARSoft.Tools.Net.Dns;
 using McMaster.Extensions.CommandLineUtils;
@@ -25,6 +26,16 @@ namespace ArashiDNS.C
         public static bool UseLog = false;
         public static DomainName DohDomain = DomainName.Parse("dns.cloudflare.com");
         public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
+        public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
+        public static IPAddress LanDnsAddress = IPAddress.Loopback;
+        public static List<DomainName> ReverseLanDomains = new()
+        {
+            DomainName.Parse("in-addr.arpa"),
+            DomainName.Parse("lan"), DomainName.Parse("home"),
+            DomainName.Parse("corp"), DomainName.Parse("local"),
+            DomainName.Parse("private"), DomainName.Parse("intranet"),
+            DomainName.Parse("localhost"), DomainName.Parse("internal")
+        };
 
         private static void Main(string[] args)
         {
@@ -101,6 +112,7 @@ namespace ArashiDNS.C
 
                 DohDomain = DomainName.Parse(new Uri(DohUrl).Host);
                 BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
+                LanDnsAddress = GetDefaultGateway() ?? IPAddress.Any;
 
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount,
                     listenerEndPoint.Port);
@@ -132,7 +144,12 @@ namespace ArashiDNS.C
                 if (query.Questions.First().Name.IsEqualOrSubDomainOf(DohDomain) ||
                     query.Questions.First().Name.IsEqualOrSubDomainOf(BackupDohDomain))
                 {
-                    e.Response = await new DnsClient(IPAddress.Parse("8.8.8.8"), 1000).SendMessageAsync(query);
+                    e.Response = await new DnsClient(StartupDnsAddress, 1000).SendMessageAsync(query);
+                    return;
+                }
+                if (ReverseLanDomains.Any(item => query.Questions.First().Name.IsEqualOrSubDomainOf(item)))
+                {
+                    e.Response = await new DnsClient(LanDnsAddress, 500).SendMessageAsync(query);
                     return;
                 }
                 if (UseCache && DnsCacheMatch(query, out var cacheMessage))
@@ -233,6 +250,19 @@ namespace ArashiDNS.C
             response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
             response.ReturnCode = dohResponse.ReturnCode;
             return response;
+        }
+
+        public static IPAddress? GetDefaultGateway()
+        {
+            return NetworkInterface
+                .GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up)
+                .Where(n => n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .SelectMany(n => n.GetIPProperties().GatewayAddresses)
+                .Select(g => g.Address)
+                .Where(a => a is {AddressFamily: AddressFamily.InterNetwork})
+                // .Where(a => Array.FindIndex(a.GetAddressBytes(), b => b != 0) >= 0)
+                .FirstOrDefault(_ => true);
         }
     }
 }
