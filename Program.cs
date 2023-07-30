@@ -15,7 +15,7 @@ namespace ArashiDNS.C
     {
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
-        public static string DohUrl = "https://dns.cloudflare.com/dns-query";
+        public static string DohUrl = "https://dns.pub/dns-query";
         public static string BackupDohUrl = "https://dns.quad9.net/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version TargetHttpVersion = new(3,0);
@@ -24,7 +24,7 @@ namespace ArashiDNS.C
         public static bool UseCache = true;
         public static bool UseEcs = true;
         public static bool UseLog = false;
-        public static DomainName DohDomain = DomainName.Parse("dns.cloudflare.com");
+        public static DomainName DohDomain = DomainName.Parse("dns.pub");
         public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
         public static IPAddress LanDnsAddress = IPAddress.Loopback;
@@ -163,7 +163,7 @@ namespace ArashiDNS.C
 
                 var dohResponse = await DnsMessageQuery(query);
 
-                if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError)
+                if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError && dohResponse.AnswerRecords.Any())
                     DnsCache.Add(query.Questions, dohResponse.AnswerRecords);
                 if (UseLog) await Task.Run(() => PrintDnsMessage(dohResponse));
 
