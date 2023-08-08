@@ -27,7 +27,7 @@ namespace ArashiDNS.C
         public static DomainName DohDomain = DomainName.Parse("dns.cloudflare.com");
         public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
-        public static IPAddress LanDnsAddress = IPAddress.Loopback;
+        public static IPAddress LanDnsAddress = IPAddress.Parse("8.8.8.8");
         public static List<DomainName> ReverseLanDomains = new()
         {
             DomainName.Parse("in-addr.arpa"),
@@ -117,7 +117,7 @@ namespace ArashiDNS.C
 
                 DohDomain = DomainName.Parse(new Uri(DohUrl).Host);
                 BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
-                LanDnsAddress = GetDefaultGateway() ?? IPAddress.Loopback;
+                LanDnsAddress = GetDefaultGateway() ?? IPAddress.Parse("8.8.8.8");
 
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount,
                     listenerEndPoint.Port);
