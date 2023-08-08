@@ -102,10 +102,12 @@ namespace ArashiDNS.C
                     using var httpClient = new HttpClient {DefaultRequestHeaders = {{"User-Agent", "ArashiDNS.C/0.1"}}};
                     try
                     {
-                        EcsAddress =
-                            IPAddress.Parse(httpClient.GetStringAsync("https://www.cloudflare-cn.com/cdn-cgi/trace")
-                                .Result.Split('\n').First(i => i.StartsWith("ip=")).Split("=").LastOrDefault()
-                                ?.Trim() ?? string.Empty);
+                        EcsAddress = IPAddress.Parse(httpClient
+                            .GetStringAsync(isZh
+                                ? "https://www.cloudflare-cn.com/cdn-cgi/trace"
+                                : "https://www.cloudflare.com/cdn-cgi/trace")
+                            .Result.Split('\n').First(i => i.StartsWith("ip=")).Split("=").LastOrDefault()
+                            ?.Trim() ?? string.Empty);
                     }
                     catch (Exception)
                     {
