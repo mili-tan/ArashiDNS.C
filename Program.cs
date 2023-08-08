@@ -85,6 +85,7 @@ namespace ArashiDNS.C
                 else if (File.Exists("/.dockerenv") ||
                          Environment.GetEnvironmentVariables().Contains("ARASHI_RUNNING_IN_CONTAINER"))
                     listenerEndPoint = new IPEndPoint(IPAddress.Any, 53);
+                if (listenerEndPoint.Port == 0) listenerEndPoint.Port = 53;
 
                 if (h3Option.HasValue())
                 {
