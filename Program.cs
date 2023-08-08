@@ -117,7 +117,7 @@ namespace ArashiDNS.C
 
                 DohDomain = DomainName.Parse(new Uri(DohUrl).Host);
                 BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
-                LanDnsAddress = GetDefaultGateway() ?? IPAddress.Any;
+                LanDnsAddress = GetDefaultGateway() ?? IPAddress.Loopback;
 
                 var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount,
                     listenerEndPoint.Port);
