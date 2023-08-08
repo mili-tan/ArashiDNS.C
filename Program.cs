@@ -102,7 +102,10 @@ namespace ArashiDNS.C
                     using var httpClient = new HttpClient {DefaultRequestHeaders = {{"User-Agent", "ArashiDNS.C/0.1"}}};
                     try
                     {
-                        EcsAddress = IPAddress.Parse(httpClient.GetStringAsync("https://ip.mili.one/").Result);
+                        EcsAddress =
+                            IPAddress.Parse(httpClient.GetStringAsync("https://www.cloudflare-cn.com/cdn-cgi/trace")
+                                .Result.Split('\n').First(i => i.StartsWith("ip=")).Split("=").LastOrDefault()
+                                ?.Trim() ?? string.Empty);
                     }
                     catch (Exception)
                     {
@@ -120,6 +123,7 @@ namespace ArashiDNS.C
                 dnsServer.Start();
                 Console.WriteLine("The forwarded upstream is: " + DohUrl);
                 Console.WriteLine("The backup upstream is: " + BackupDohUrl);
+                Console.WriteLine("The EDNS client subnet is: " + EcsAddress);
                 Console.WriteLine("Now listening on: " + listenerEndPoint);
                 Console.WriteLine("Application started. Press Ctrl+C / q to shut down.");
                 if (!Console.IsInputRedirected && Console.KeyAvailable)
