@@ -68,6 +68,10 @@ namespace ArashiDNS.C
                 CommandOptionType.NoValue);
             var logOption = cmd.Option("-log", isZh ? "打印查询与响应日志。" : "Print query and response logs",
                 CommandOptionType.NoValue);
+            var ecsIpOption = cmd.Option<string>("--ecs-address <IPAddress>",
+                isZh ? "强制覆盖 EDNS Client Subnet 地址。" : "Force override EDNS client subnet address", CommandOptionType.SingleValue);
+            var startupDnsOption = cmd.Option<string>("--startup-dns <IPAddress>",
+                isZh ? "用于解析 DoH 服务器地址的 Startup DNS 地址。" : "The startup dns address for resolving the DoH server address", CommandOptionType.SingleValue);
 
             cmd.OnExecute(() =>
             {
@@ -86,6 +90,10 @@ namespace ArashiDNS.C
                          Environment.GetEnvironmentVariables().Contains("ARASHI_RUNNING_IN_CONTAINER"))
                     listenerEndPoint = new IPEndPoint(IPAddress.Any, 53);
                 if (listenerEndPoint.Port == 0) listenerEndPoint.Port = 53;
+                if (startupDnsOption.HasValue())
+                    StartupDnsAddress = IPAddress.Parse(startupDnsOption.Value() ?? "8.8.8.8");
+                if (ecsIpOption.HasValue())
+                    EcsAddress = IPAddress.Parse(ecsIpOption.Value() ?? "0.0.0.0");
 
                 if (h3Option.HasValue())
                 {
@@ -98,7 +106,7 @@ namespace ArashiDNS.C
                     TargetHttpVersion = new Version(2, 0);
                 }
 
-                if (UseEcs)
+                if (!ecsIpOption.HasValue() && UseEcs)
                 {
                     using var httpClient = new HttpClient {DefaultRequestHeaders = {{"User-Agent", "ArashiDNS.C/0.1"}}};
                     try
