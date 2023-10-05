@@ -32,5 +32,13 @@ namespace ArashiDNS
             return (List<DnsRecordBase>) MemoryCache.Default.Get(question.First().ToString()) ??
                    throw new InvalidOperationException();
         }
+
+        public static bool TryGet(DnsMessage query, out DnsMessage message)
+        {
+            var contains = Contains(query.Questions);
+            message = query.CreateResponseInstance();
+            if (contains) message.AnswerRecords.AddRange(Get(query.Questions));
+            return contains;
+        }
     }
 }

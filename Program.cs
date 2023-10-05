@@ -108,7 +108,8 @@ namespace ArashiDNS.C
 
                 if (!ecsIpOption.HasValue() && UseEcs)
                 {
-                    using var httpClient = new HttpClient {DefaultRequestHeaders = {{"User-Agent", "ArashiDNS.C/0.1"}}};
+                    using var httpClient = new HttpClient();
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
                     try
                     {
                         EcsAddress = IPAddress.Parse(httpClient
@@ -167,7 +168,7 @@ namespace ArashiDNS.C
                     e.Response = await new DnsClient(LanDnsAddress, 500).SendMessageAsync(query);
                     return;
                 }
-                if (UseCache && DnsCacheMatch(query, out var cacheMessage))
+                if (UseCache && DnsCache.TryGet(query, out var cacheMessage))
                 {
                     e.Response = cacheMessage;
                     return;
@@ -230,14 +231,6 @@ namespace ArashiDNS.C
             Console.Write($"R: {message.ReturnCode} ");
             foreach (var item in message.AnswerRecords) Console.Write($" A:{item} ");
             Console.Write(Environment.NewLine);
-        }
-
-        public static bool DnsCacheMatch(DnsMessage query, out DnsMessage message)
-        {
-            var contains = DnsCache.Contains(query.Questions);
-            message = query.CreateResponseInstance();
-            if (contains) message.AnswerRecords.AddRange(DnsCache.Get(query.Questions));
-            return contains;
         }
 
         public static async Task<DnsMessage> DnsMessageQuery(DnsMessage query)
