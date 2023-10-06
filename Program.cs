@@ -168,6 +168,7 @@ namespace ArashiDNS.C
                     e.Response = await new DnsClient(LanDnsAddress, 500).SendMessageAsync(query);
                     return;
                 }
+
                 if (UseCache && DnsCache.TryGet(query, out var cacheMessage))
                 {
                     e.Response = cacheMessage;
@@ -179,10 +180,10 @@ namespace ArashiDNS.C
 
                 var dohResponse = await DnsMessageQuery(query);
 
-                if (UseCache && dohResponse.ReturnCode == ReturnCode.NoError && dohResponse.AnswerRecords.Any())
-                    DnsCache.Add(query.Questions, dohResponse.AnswerRecords);
+                if (UseCache)
+                    DnsCache.Add(query, dohResponse);
                 if (UseLog) await Task.Run(() => PrintDnsMessage(dohResponse));
-
+                
                 e.Response = dohResponse;
             }
             catch (Exception exception)
