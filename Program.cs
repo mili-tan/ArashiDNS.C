@@ -15,7 +15,7 @@ namespace ArashiDNS.C
     {
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
-        public static string DohUrl = "https://dns.cloudflare.com/dns-query";
+        public static string DohUrl = "https://1.0.0.1/dns-query";
         public static string BackupDohUrl = "https://dns.quad9.net/dns-query";
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version TargetHttpVersion = new(3,0);
@@ -24,7 +24,7 @@ namespace ArashiDNS.C
         public static bool UseCache = true;
         public static bool UseEcs = true;
         public static bool UseLog = false;
-        public static DomainName DohDomain = DomainName.Parse("dns.cloudflare.com");
+        public static DomainName DohDomain = DomainName.Parse("1.0.0.1");
         public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
         public static IPAddress LanDnsAddress = IPAddress.Parse("8.8.8.8");
@@ -78,6 +78,7 @@ namespace ArashiDNS.C
                 var listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 15353);
                 var listenerCount = Environment.ProcessorCount * 2;
 
+                //if (isZh) DohUrl = "https://120.53.53.53/dns-query";
                 if (nOption.HasValue()) UseCache = false;
                 if (eOption.HasValue()) UseEcs = false;
                 if (logOption.HasValue()) UseLog = true;
