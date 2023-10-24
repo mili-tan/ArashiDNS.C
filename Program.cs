@@ -28,6 +28,8 @@ namespace ArashiDNS.C
         public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
         public static IPAddress LanDnsAddress = IPAddress.Parse("8.8.8.8");
+        public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 15353);
+
         public static List<DomainName> ReverseLanDomains = new()
         {
             DomainName.Parse("in-addr.arpa"),
@@ -75,7 +77,6 @@ namespace ArashiDNS.C
 
             cmd.OnExecute(() =>
             {
-                var listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 15353);
                 var listenerCount = Environment.ProcessorCount * 2;
 
                 if (isZh) DohUrl = "https://120.53.53.53/dns-query";
@@ -85,12 +86,12 @@ namespace ArashiDNS.C
                 if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
                 if (urlBackupArgument.HasValue) BackupDohUrl = urlBackupArgument.Value!;
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
-                if (ipOption.HasValue()) listenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
-                else if (!PortIsUse(53)) listenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
+                if (ipOption.HasValue()) ListenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
+                else if (!PortIsUse(53)) ListenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
                 else if (File.Exists("/.dockerenv") ||
                          Environment.GetEnvironmentVariables().Contains("ARASHI_RUNNING_IN_CONTAINER"))
-                    listenerEndPoint = new IPEndPoint(IPAddress.Any, 53);
-                if (listenerEndPoint.Port == 0) listenerEndPoint.Port = 53;
+                    ListenerEndPoint = new IPEndPoint(IPAddress.Any, 53);
+                if (ListenerEndPoint.Port == 0) ListenerEndPoint.Port = 53;
                 if (startupDnsOption.HasValue())
                     StartupDnsAddress = IPAddress.Parse(startupDnsOption.Value() ?? "8.8.8.8");
                 if (ecsIpOption.HasValue())
@@ -130,14 +131,14 @@ namespace ArashiDNS.C
                 BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
                 LanDnsAddress = GetDefaultGateway() ?? IPAddress.Parse("8.8.8.8");
 
-                var dnsServer = new DnsServer(listenerEndPoint.Address, listenerCount, listenerCount,
-                    listenerEndPoint.Port);
+                var dnsServer = new DnsServer(ListenerEndPoint.Address, listenerCount, listenerCount,
+                    ListenerEndPoint.Port);
                 dnsServer.QueryReceived += ServerOnQueryReceived;
                 dnsServer.Start();
                 Console.WriteLine("The forwarded upstream is: " + DohUrl);
                 Console.WriteLine("The backup upstream is: " + BackupDohUrl);
                 Console.WriteLine("The EDNS client subnet is: " + EcsAddress);
-                Console.WriteLine("Now listening on: " + listenerEndPoint);
+                Console.WriteLine("Now listening on: " + ListenerEndPoint);
                 Console.WriteLine("Application started. Press Ctrl+C / q to shut down.");
                 if (!Console.IsInputRedirected && Console.KeyAvailable)
                 {
@@ -158,6 +159,19 @@ namespace ArashiDNS.C
             if (e.Query is not DnsMessage query) return;
             try
             {
+                if (query.Questions.First().RecordType == RecordType.A &&
+                    (Equals(ListenerEndPoint.Address, IPAddress.Any) ||
+                     Equals(ListenerEndPoint.Address, IPAddress.IPv6Any)))
+                {
+                    var msg = query.CreateResponseInstance();
+                    msg.IsRecursionAllowed = true;
+                    msg.IsRecursionDesired = true;
+                    msg.AnswerRecords.Add(
+                        new HInfoRecord(query.Questions.First().Name, 3600, "ANY Obsoleted", "RFC8482"));
+                    e.Response = msg;
+                    return;
+                }
+
                 if (query.Questions.First().Name.IsEqualOrSubDomainOf(DohDomain) ||
                     query.Questions.First().Name.IsEqualOrSubDomainOf(BackupDohDomain))
                 {
