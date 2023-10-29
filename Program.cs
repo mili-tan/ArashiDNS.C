@@ -159,6 +159,14 @@ namespace ArashiDNS.C
             if (e.Query is not DnsMessage query) return;
             try
             {
+                if (!query.Questions.Any())
+                {
+                    var msg = query.CreateResponseInstance();
+                    msg.ReturnCode = ReturnCode.ServerFailure;
+                    e.Response = msg;
+                    return;
+                }
+
                 var quest = query.Questions.First();
 
                 if (quest.RecordType == RecordType.Any &&
@@ -166,8 +174,6 @@ namespace ArashiDNS.C
                      Equals(ListenerEndPoint.Address, IPAddress.IPv6Any)))
                 {
                     var msg = query.CreateResponseInstance();
-                    msg.IsRecursionAllowed = true;
-                    msg.IsRecursionDesired = true;
                     msg.AnswerRecords.Add(
                         new HInfoRecord(quest.Name, 3600, "ANY Obsoleted", "RFC8482"));
                     e.Response = msg;
@@ -180,6 +186,7 @@ namespace ArashiDNS.C
                     e.Response = await new DnsClient(StartupDnsAddress, 1000).SendMessageAsync(query);
                     return;
                 }
+
                 if (ReverseLanDomains.Any(item => quest.Name.IsEqualOrSubDomainOf(item)))
                 {
                     e.Response = await new DnsClient(LanDnsAddress, 500).SendMessageAsync(query);
@@ -197,10 +204,9 @@ namespace ArashiDNS.C
 
                 var dohResponse = await DnsMessageQuery(query);
 
-                if (UseCache)
-                    DnsCache.Add(query, dohResponse);
+                if (UseCache) DnsCache.Add(query, dohResponse);
                 if (UseLog) await Task.Run(() => PrintDnsMessage(dohResponse));
-                
+
                 e.Response = dohResponse;
             }
             catch (Exception exception)
