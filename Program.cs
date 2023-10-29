@@ -159,7 +159,7 @@ namespace ArashiDNS.C
             if (e.Query is not DnsMessage query) return;
             try
             {
-                if (query.Questions.First().RecordType == RecordType.A &&
+                if (query.Questions.First().RecordType == RecordType.Any &&
                     (Equals(ListenerEndPoint.Address, IPAddress.Any) ||
                      Equals(ListenerEndPoint.Address, IPAddress.IPv6Any)))
                 {
