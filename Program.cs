@@ -159,7 +159,9 @@ namespace ArashiDNS.C
             if (e.Query is not DnsMessage query) return;
             try
             {
-                if (query.Questions.First().RecordType == RecordType.Any &&
+                var quest = query.Questions.First();
+
+                if (quest.RecordType == RecordType.Any &&
                     (Equals(ListenerEndPoint.Address, IPAddress.Any) ||
                      Equals(ListenerEndPoint.Address, IPAddress.IPv6Any)))
                 {
@@ -167,18 +169,18 @@ namespace ArashiDNS.C
                     msg.IsRecursionAllowed = true;
                     msg.IsRecursionDesired = true;
                     msg.AnswerRecords.Add(
-                        new HInfoRecord(query.Questions.First().Name, 3600, "ANY Obsoleted", "RFC8482"));
+                        new HInfoRecord(quest.Name, 3600, "ANY Obsoleted", "RFC8482"));
                     e.Response = msg;
                     return;
                 }
 
-                if (query.Questions.First().Name.IsEqualOrSubDomainOf(DohDomain) ||
-                    query.Questions.First().Name.IsEqualOrSubDomainOf(BackupDohDomain))
+                if (quest.Name.IsEqualOrSubDomainOf(DohDomain) ||
+                    quest.Name.IsEqualOrSubDomainOf(BackupDohDomain))
                 {
                     e.Response = await new DnsClient(StartupDnsAddress, 1000).SendMessageAsync(query);
                     return;
                 }
-                if (ReverseLanDomains.Any(item => query.Questions.First().Name.IsEqualOrSubDomainOf(item)))
+                if (ReverseLanDomains.Any(item => quest.Name.IsEqualOrSubDomainOf(item)))
                 {
                     e.Response = await new DnsClient(LanDnsAddress, 500).SendMessageAsync(query);
                     return;
