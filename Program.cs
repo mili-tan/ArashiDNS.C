@@ -79,7 +79,7 @@ namespace ArashiDNS.C
             {
                 var listenerCount = Environment.ProcessorCount * 2;
 
-                if (isZh) DohUrl = "https://120.53.53.53/dns-query";
+                if (isZh) DohUrl = "https://dns.pub/dns-query";
                 if (nOption.HasValue()) UseCache = false;
                 if (eOption.HasValue()) UseEcs = false;
                 if (logOption.HasValue()) UseLog = true;
