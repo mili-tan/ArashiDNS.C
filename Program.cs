@@ -263,14 +263,13 @@ namespace ArashiDNS.C
             var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
                 .Replace('+', '-').Replace('/', '_');
 
-            var response = query.CreateResponseInstance();
             DnsMessage dohResponse;
             try
             {
                 dohResponse = DnsMessage.Parse(
                     await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
                 if (dohResponse.ReturnCode is not (ReturnCode.NoError or ReturnCode.NxDomain))
-                    throw new Exception("ReturnCode Exception " + response.ReturnCode);
+                    throw new Exception("ReturnCode Exception " + dohResponse.ReturnCode);
             }
             catch (Exception e)
             {
@@ -279,8 +278,11 @@ namespace ArashiDNS.C
                     await CreateHttpClient().GetByteArrayAsync($"{BackupDohUrl}?ct=application/dns-message&dns={dnsStr}"));
             }
 
+            var response = query.CreateResponseInstance();
             response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
             response.ReturnCode = dohResponse.ReturnCode;
+            response.IsRecursionDesired = true;
+            response.IsRecursionDesired = true;
             return response;
         }
 

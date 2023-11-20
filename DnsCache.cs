@@ -50,6 +50,8 @@ namespace ArashiDNS
             var get = Get(query.Questions);
             message.ReturnCode = get.Item2;
             message.AnswerRecords.AddRange(get.Item1);
+            message.IsRecursionDesired = true;
+            message.IsRecursionDesired = true;
             return contains;
         }
     }
