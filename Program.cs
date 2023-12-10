@@ -23,7 +23,7 @@ namespace ArashiDNS.C
         public static IPAddress EcsAddress = IPAddress.Any;
         public static bool UseCache = true;
         public static bool UseEcs = true;
-        public static bool UseLog = false;
+        public static bool UseLog;
         public static DomainName ServerDomain = DomainName.Parse("1.0.0.1");
         public static DomainName BackupServerDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
