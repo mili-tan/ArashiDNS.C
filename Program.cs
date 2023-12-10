@@ -77,7 +77,6 @@ namespace ArashiDNS.C
 
             cmd.OnExecute(() =>
             {
-                var listenerCount = Environment.ProcessorCount * 2;
 
                 if (isZh) DohUrl = "https://dns.pub/dns-query";
                 if (nOption.HasValue()) UseCache = false;
@@ -131,8 +130,8 @@ namespace ArashiDNS.C
                 BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
                 LanDnsAddress = GetDefaultGateway() ?? IPAddress.Parse("8.8.8.8");
 
-                var dnsServer = new DnsServer(ListenerEndPoint.Address, listenerCount, listenerCount,
-                    ListenerEndPoint.Port);
+                var dnsServer = new DnsServer(new UdpServerTransport(ListenerEndPoint),
+                    new TcpServerTransport(ListenerEndPoint));
                 dnsServer.QueryReceived += ServerOnQueryReceived;
                 dnsServer.Start();
                 Console.WriteLine("The forwarded upstream is: " + DohUrl);
@@ -259,7 +258,7 @@ namespace ArashiDNS.C
 
         public static async Task<DnsMessage> DnsMessageQuery(DnsMessage query)
         {
-            query.Encode(false, out var queryData);
+            var queryData = query.Encode().ToArraySegment(false).ToArray();
             var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
                 .Replace('+', '-').Replace('/', '_');
 
