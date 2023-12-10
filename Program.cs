@@ -15,8 +15,8 @@ namespace ArashiDNS.C
     {
         public static IServiceProvider ServiceProvider = new ServiceCollection().AddHttpClient().BuildServiceProvider();
         public static IHttpClientFactory? ClientFactory = ServiceProvider.GetService<IHttpClientFactory>();
-        public static string DohUrl = "https://1.0.0.1/dns-query";
-        public static string BackupDohUrl = "https://dns.quad9.net/dns-query";
+        public static Uri ServerUrl = new("https://1.0.0.1/dns-query");
+        public static Uri BackupServerUrl = new("https://dns.quad9.net/dns-query");
         public static TimeSpan Timeout = TimeSpan.FromMilliseconds(3000);
         public static Version TargetHttpVersion = new(3,0);
         public static HttpVersionPolicy TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
@@ -24,8 +24,8 @@ namespace ArashiDNS.C
         public static bool UseCache = true;
         public static bool UseEcs = true;
         public static bool UseLog = false;
-        public static DomainName DohDomain = DomainName.Parse("1.0.0.1");
-        public static DomainName BackupDohDomain = DomainName.Parse("dns.quad9.net");
+        public static DomainName ServerDomain = DomainName.Parse("1.0.0.1");
+        public static DomainName BackupServerDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
         public static IPAddress LanDnsAddress = IPAddress.Parse("8.8.8.8");
         public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 15353);
@@ -78,12 +78,12 @@ namespace ArashiDNS.C
             cmd.OnExecute(() =>
             {
 
-                if (isZh) DohUrl = "https://dns.pub/dns-query";
+                if (isZh) ServerUrl = new Uri("https://dns.pub/dns-query");
                 if (nOption.HasValue()) UseCache = false;
                 if (eOption.HasValue()) UseEcs = false;
                 if (logOption.HasValue()) UseLog = true;
-                if (urlArgument.HasValue) DohUrl = urlArgument.Value!;
-                if (urlBackupArgument.HasValue) BackupDohUrl = urlBackupArgument.Value!;
+                if (urlArgument.HasValue) ServerUrl = new Uri(urlArgument.Value!);
+                if (urlBackupArgument.HasValue) BackupServerUrl = new Uri(urlBackupArgument.Value!);
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) ListenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
                 else if (!PortIsUse(53)) ListenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
@@ -126,16 +126,16 @@ namespace ArashiDNS.C
                     }
                 }
 
-                DohDomain = DomainName.Parse(new Uri(DohUrl).Host);
-                BackupDohDomain = DomainName.Parse(new Uri(BackupDohUrl).Host);
+                ServerDomain = DomainName.Parse(ServerUrl.Host);
+                BackupServerDomain = DomainName.Parse(BackupServerUrl.Host);
                 LanDnsAddress = GetDefaultGateway() ?? IPAddress.Parse("8.8.8.8");
 
                 var dnsServer = new DnsServer(new UdpServerTransport(ListenerEndPoint),
                     new TcpServerTransport(ListenerEndPoint));
                 dnsServer.QueryReceived += ServerOnQueryReceived;
                 dnsServer.Start();
-                Console.WriteLine("The forwarded upstream is: " + DohUrl);
-                Console.WriteLine("The backup upstream is: " + BackupDohUrl);
+                Console.WriteLine("The forwarded upstream is: " + ServerUrl);
+                Console.WriteLine("The backup upstream is: " + BackupServerUrl);
                 Console.WriteLine("The EDNS client subnet is: " + EcsAddress);
                 Console.WriteLine("Now listening on: " + ListenerEndPoint);
                 Console.WriteLine("Application started. Press Ctrl+C / q to shut down.");
@@ -179,8 +179,8 @@ namespace ArashiDNS.C
                     return;
                 }
 
-                if (quest.Name.IsEqualOrSubDomainOf(DohDomain) ||
-                    quest.Name.IsEqualOrSubDomainOf(BackupDohDomain))
+                if (quest.Name.IsEqualOrSubDomainOf(ServerDomain) ||
+                    quest.Name.IsEqualOrSubDomainOf(BackupServerDomain))
                 {
                     e.Response = await new DnsClient(StartupDnsAddress, 1000).SendMessageAsync(query);
                     return;
@@ -201,12 +201,12 @@ namespace ArashiDNS.C
                 if (UseEcs && !DnsEcs.IsEcsEnable(query))
                     query = DnsEcs.AddEcs(query, EcsAddress);
 
-                var dohResponse = await DnsMessageQuery(query);
+                var myResponse = await DnsMessageQuery(query);
 
-                if (UseCache) DnsCache.Add(query, dohResponse);
-                if (UseLog) await Task.Run(() => PrintDnsMessage(dohResponse));
+                if (UseCache) DnsCache.Add(query, myResponse);
+                if (UseLog) await Task.Run(() => PrintDnsMessage(myResponse));
 
-                e.Response = dohResponse;
+                e.Response = myResponse;
             }
             catch (Exception exception)
             {
@@ -266,7 +266,7 @@ namespace ArashiDNS.C
             try
             {
                 dohResponse = DnsMessage.Parse(
-                    await CreateHttpClient().GetByteArrayAsync($"{DohUrl}?ct=application/dns-message&dns={dnsStr}"));
+                    await CreateHttpClient().GetByteArrayAsync($"{ServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
                 if (dohResponse.ReturnCode is not (ReturnCode.NoError or ReturnCode.NxDomain))
                     throw new Exception("ReturnCode Exception " + dohResponse.ReturnCode);
             }
@@ -274,7 +274,7 @@ namespace ArashiDNS.C
             {
                 Console.WriteLine("E:" + e.Message);
                 dohResponse = DnsMessage.Parse(
-                    await CreateHttpClient().GetByteArrayAsync($"{BackupDohUrl}?ct=application/dns-message&dns={dnsStr}"));
+                    await CreateHttpClient().GetByteArrayAsync($"{BackupServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
             }
 
             var response = query.CreateResponseInstance();
