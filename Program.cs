@@ -201,7 +201,7 @@ namespace ArashiDNS.C
                 if (UseEcs && !DnsEcs.IsEcsEnable(query))
                     query = DnsEcs.AddEcs(query, EcsAddress);
 
-                var myResponse = await DnsMessageQuery(query);
+                var myResponse = await DnsOverHttpsQuery(query);
 
                 if (UseCache) DnsCache.Add(query, myResponse);
                 if (UseLog) await Task.Run(() => PrintDnsMessage(myResponse));
@@ -256,7 +256,7 @@ namespace ArashiDNS.C
             Console.Write(Environment.NewLine);
         }
 
-        public static async Task<DnsMessage> DnsMessageQuery(DnsMessage query)
+        public static async Task<DnsMessage> DnsOverHttpsQuery(DnsMessage query)
         {
             var queryData = query.Encode().ToArraySegment(false).ToArray();
             var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
