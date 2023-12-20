@@ -111,6 +111,7 @@ namespace ArashiDNS.C
                 {
                     using var httpClient = new HttpClient();
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
+                    httpClient.DefaultRequestHeaders.Add("Accept", "application/dns-message");
                     try
                     {
                         EcsAddress = IPAddress.Parse(httpClient
