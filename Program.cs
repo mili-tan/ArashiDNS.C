@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using ARSoft.Tools.Net;
@@ -111,7 +112,6 @@ namespace ArashiDNS.C
                 {
                     using var httpClient = new HttpClient();
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
-                    httpClient.DefaultRequestHeaders.Add("Accept", "application/dns-message");
                     try
                     {
                         EcsAddress = IPAddress.Parse(httpClient
@@ -246,6 +246,7 @@ namespace ArashiDNS.C
             client.DefaultVersionPolicy = TargetVersionPolicy;
             client.Timeout = Timeout;
             client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
+            client.DefaultRequestHeaders.Add("Accept", "application/dns-message");
             return client;
         }
 
