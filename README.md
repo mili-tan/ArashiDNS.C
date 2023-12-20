@@ -5,7 +5,7 @@ The super easy way DNS over HTTPS Client
 wget https://t.mili.one/arashic-linux-x64 -O /usr/bin/arashic
 wget https://t.mili.one/arashic.service -O /etc/systemd/system/arashic@.service
 chmod +x /usr/bin/arashic 
-systemctl enable arashic@dns.cloudflare.com --now
+systemctl enable arashic@arashi.eu.org --now
 ```
 OR using Docker. `docker run -d -p 53:53 ghcr.io/mili-tan/arashidns.c https://arashi.eu.org/dns-query` 
 ```
