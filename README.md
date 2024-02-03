@@ -7,7 +7,7 @@ wget https://t.mili.one/arashic.service -O /etc/systemd/system/arashic@.service
 chmod +x /usr/bin/arashic 
 systemctl enable arashic@arashi.eu.org --now
 ```
-OR using Docker. `docker run -d -p 53:53 -p 53:53/udp ghcr.io/mili-tan/arashidns.c https://arashi.eu.org/dns-query -l 0.0.0.0` 
+OR using Docker. `docker run -d -p 127.0.0.1:53:53 -p 127.0.0.1:53:53/udp ghcr.io/mili-tan/arashidns.c https://arashi.eu.org/dns-query -l 0.0.0.0` 
 ```
 Usage: ArashiDNS.C [options] <target> <backup>
 
