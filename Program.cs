@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using ARSoft.Tools.Net;
@@ -260,31 +259,41 @@ namespace ArashiDNS.C
 
         public static async Task<DnsMessage> DnsOverHttpsQuery(DnsMessage query)
         {
-            var queryData = query.Encode().ToArraySegment(false).ToArray();
-            var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
-                .Replace('+', '-').Replace('/', '_');
-
-            DnsMessage dohResponse;
             try
             {
-                dohResponse = DnsMessage.Parse(
-                    await CreateHttpClient().GetByteArrayAsync($"{ServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
-                if (dohResponse.ReturnCode is not (ReturnCode.NoError or ReturnCode.NxDomain))
-                    throw new Exception("ReturnCode Exception " + dohResponse.ReturnCode);
+                var queryData = query.Encode().ToArraySegment(false).ToArray();
+                var dnsStr = Convert.ToBase64String(queryData).TrimEnd('=')
+                    .Replace('+', '-').Replace('/', '_');
+
+                DnsMessage dohResponse;
+                try
+                {
+                    dohResponse = DnsMessage.Parse(
+                        await CreateHttpClient().GetByteArrayAsync($"{ServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
+                    if (dohResponse.ReturnCode is not (ReturnCode.NoError or ReturnCode.NxDomain))
+                        throw new Exception("ReturnCode Exception " + dohResponse.ReturnCode);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("E:" + e.Message);
+                    dohResponse = DnsMessage.Parse(
+                        await CreateHttpClient().GetByteArrayAsync($"{BackupServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
+                }
+
+                var response = query.CreateResponseInstance();
+                response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
+                response.ReturnCode = dohResponse.ReturnCode;
+                response.IsRecursionDesired = true;
+                response.IsRecursionDesired = true;
+                return response;
             }
             catch (Exception e)
             {
-                Console.WriteLine("E:" + e.Message);
-                dohResponse = DnsMessage.Parse(
-                    await CreateHttpClient().GetByteArrayAsync($"{BackupServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
+                Console.WriteLine(e);
+                var response = query.CreateResponseInstance();
+                response.ReturnCode = ReturnCode.ServerFailure;
+                return response;
             }
-
-            var response = query.CreateResponseInstance();
-            response.AnswerRecords.AddRange(dohResponse.AnswerRecords);
-            response.ReturnCode = dohResponse.ReturnCode;
-            response.IsRecursionDesired = true;
-            response.IsRecursionDesired = true;
-            return response;
         }
 
         public static IPAddress? GetDefaultGateway()
