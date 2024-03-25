@@ -1,5 +1,5 @@
 <p align="center">
-  <img src='https://mili.one/pics/arashic.png' width="50%" height="50%"/>
+  <img src='https://mili.one/pics/arashic.png' width="70%" height="70%"/>
 </p>
 
 ----------
