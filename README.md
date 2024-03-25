@@ -1,4 +1,8 @@
-# ArashiDNS.C
+<p align="center">
+  <img src='https://github.com/mili-tan/ArashiDNS.C/assets/24996957/4e83a3b4-4e53-4cf9-8d0f-f1bdca95ccc4' width="50%" height="50%"/>
+</p>
+
+----------
 The super easy way DNS over HTTPS Client
 
 ```
