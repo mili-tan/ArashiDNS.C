@@ -180,7 +180,9 @@ namespace ArashiDNS.C
                 }
 
                 if (quest.Name.IsEqualOrSubDomainOf(ServerDomain) ||
-                    quest.Name.IsEqualOrSubDomainOf(BackupServerDomain))
+                    quest.Name.IsEqualOrSubDomainOf(BackupServerDomain) ||
+                    quest.Name.IsEqualOrSubDomainOf(DomainName.Parse("cloudflare.com")) ||
+                    quest.Name.IsEqualOrSubDomainOf(DomainName.Parse("cloudflare-cn.com")))
                 {
                     e.Response = await new DnsClient(StartupDnsAddress, 1000).SendMessageAsync(query);
                     return;
