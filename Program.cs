@@ -265,18 +265,22 @@ namespace ArashiDNS.C
                     .Replace('+', '-').Replace('/', '_');
 
                 DnsMessage dohResponse;
+                var msg = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}?ct=application/dns-message&dns={dnsStr}")
+                {
+                    Headers = {{"User-Agent", "ArashiDNS.C/0.1"}, {"Accept", "application/dns-message"}}
+                };
+
                 try
                 {
-                    dohResponse = DnsMessage.Parse(
-                        await CreateHttpClient().GetByteArrayAsync($"{ServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
+                    dohResponse = DnsMessage.Parse(await (await CreateHttpClient().SendAsync(msg)).Content.ReadAsByteArrayAsync());
                     if (dohResponse.ReturnCode is not (ReturnCode.NoError or ReturnCode.NxDomain))
                         throw new Exception("ReturnCode Exception " + dohResponse.ReturnCode);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine("E:" + e);
-                    dohResponse = DnsMessage.Parse(
-                        await CreateHttpClient().GetByteArrayAsync($"{BackupServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
+                    msg.RequestUri = new Uri($"{BackupServerUrl}?ct=application/dns-message&dns={dnsStr}");
+                    dohResponse = DnsMessage.Parse(await (await CreateHttpClient().SendAsync(msg)).Content.ReadAsByteArrayAsync());
                 }
 
                 var response = query.CreateResponseInstance();
