@@ -243,8 +243,8 @@ namespace ArashiDNS.C
             client.DefaultRequestVersion = TargetHttpVersion;
             client.DefaultVersionPolicy = TargetVersionPolicy;
             client.Timeout = Timeout;
-            client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
-            client.DefaultRequestHeaders.Add("Accept", "application/dns-message");
+            //client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
+            //client.DefaultRequestHeaders.Add("Accept", "application/dns-message");
             return client;
         }
 
