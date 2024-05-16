@@ -215,7 +215,10 @@ namespace ArashiDNS.C
                 Console.Write(Environment.NewLine);
 
                 if (exception.InnerException is HttpProtocolException)
+                {
                     TargetHttpVersion = new Version(2, 0);
+                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+                }
                 else Console.WriteLine(exception);
 
                 var response = query.CreateResponseInstance();
