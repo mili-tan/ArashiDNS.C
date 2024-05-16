@@ -290,6 +290,7 @@ namespace ArashiDNS.C
             {
                 if (requestException.InnerException is HttpProtocolException)
                 {
+                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionExact;
                     TargetHttpVersion = new Version(2, 0);
                 }
                 else Console.WriteLine(requestException);
