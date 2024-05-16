@@ -77,7 +77,7 @@ namespace ArashiDNS.C
 
             cmd.OnExecute(() =>
             {
-
+                var portUsed = PortIsUse(53);
                 if (isZh) ServerUrl = new Uri("https://dns.pub/dns-query");
                 if (nOption.HasValue()) UseCache = false;
                 if (eOption.HasValue()) UseEcs = false;
@@ -86,11 +86,11 @@ namespace ArashiDNS.C
                 if (urlBackupArgument.HasValue) BackupServerUrl = new Uri(urlBackupArgument.Value!);
                 if (wOption.HasValue()) Timeout = TimeSpan.FromMilliseconds(double.Parse(wOption.Value()!));
                 if (ipOption.HasValue()) ListenerEndPoint = IPEndPoint.Parse(ipOption.Value()!);
-                else if (!PortIsUse(53)) ListenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
+                else if (!portUsed) ListenerEndPoint = new IPEndPoint(IPAddress.Loopback, 53);
                 else if (File.Exists("/.dockerenv") ||
                          Environment.GetEnvironmentVariables().Contains("ARASHI_RUNNING_IN_CONTAINER"))
                     ListenerEndPoint = new IPEndPoint(IPAddress.Any, 53);
-                if (ListenerEndPoint.Port == 0) ListenerEndPoint.Port = 53;
+                if (ListenerEndPoint.Port == 0) ListenerEndPoint.Port = portUsed ? 15353 : 53;
                 if (startupDnsOption.HasValue())
                     StartupDnsAddress = IPAddress.Parse(startupDnsOption.Value() ?? "8.8.8.8");
                 if (ecsIpOption.HasValue())
