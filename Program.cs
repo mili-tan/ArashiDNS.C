@@ -274,7 +274,7 @@ namespace ArashiDNS.C
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("E:" + e.Message);
+                    Console.WriteLine("E:" + e);
                     dohResponse = DnsMessage.Parse(
                         await CreateHttpClient().GetByteArrayAsync($"{BackupServerUrl.ToString()}?ct=application/dns-message&dns={dnsStr}"));
                 }
