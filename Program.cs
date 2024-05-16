@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using ARSoft.Tools.Net;
@@ -210,16 +211,22 @@ namespace ArashiDNS.C
 
                 e.Response = myResponse;
             }
-            catch (Exception exception)
+            catch (HttpRequestException requestException)
             {
-                Console.Write(Environment.NewLine);
-
-                if (exception.InnerException is HttpProtocolException)
+                if (requestException.InnerException is HttpProtocolException)
                 {
                     TargetHttpVersion = new Version(2, 0);
                     TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
                 }
-                else Console.WriteLine(exception);
+                else Console.WriteLine(requestException);
+
+                var response = query.CreateResponseInstance();
+                response.ReturnCode = ReturnCode.ServerFailure;
+                e.Response = response;
+            }
+            catch (Exception exception)
+            {
+                Console.Write(exception);
 
                 var response = query.CreateResponseInstance();
                 response.ReturnCode = ReturnCode.ServerFailure;
