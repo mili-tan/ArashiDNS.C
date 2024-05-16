@@ -211,19 +211,6 @@ namespace ArashiDNS.C
 
                 e.Response = myResponse;
             }
-            catch (HttpRequestException requestException)
-            {
-                if (requestException.InnerException is HttpProtocolException)
-                {
-                    TargetHttpVersion = new Version(2, 0);
-                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
-                }
-                else Console.WriteLine(requestException);
-
-                var response = query.CreateResponseInstance();
-                response.ReturnCode = ReturnCode.ServerFailure;
-                e.Response = response;
-            }
             catch (Exception exception)
             {
                 Console.Write(exception);
@@ -297,6 +284,19 @@ namespace ArashiDNS.C
                 response.ReturnCode = dohResponse.ReturnCode;
                 response.IsRecursionDesired = true;
                 response.IsRecursionDesired = true;
+                return response;
+            }
+            catch (HttpRequestException requestException)
+            {
+                if (requestException.InnerException is HttpProtocolException)
+                {
+                    TargetHttpVersion = new Version(2, 0);
+                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+                }
+                else Console.WriteLine(requestException);
+
+                var response = query.CreateResponseInstance();
+                response.ReturnCode = ReturnCode.ServerFailure;
                 return response;
             }
             catch (Exception e)
