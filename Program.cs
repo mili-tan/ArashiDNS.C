@@ -243,8 +243,6 @@ namespace ArashiDNS.C
             client.DefaultRequestVersion = TargetHttpVersion;
             client.DefaultVersionPolicy = TargetVersionPolicy;
             client.Timeout = Timeout;
-            //client.DefaultRequestHeaders.Add("User-Agent", "ArashiDNS.C/0.1");
-            //client.DefaultRequestHeaders.Add("Accept", "application/dns-message");
             return client;
         }
 
@@ -294,7 +292,7 @@ namespace ArashiDNS.C
             {
                 if (requestException.InnerException is HttpProtocolException)
                 {
-                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    TargetVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
                     TargetHttpVersion = new Version(2, 0);
                 }
                 else Console.WriteLine(requestException);
