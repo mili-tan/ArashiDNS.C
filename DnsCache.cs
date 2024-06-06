@@ -13,12 +13,14 @@ namespace ArashiDNS
             var question = qMessage.Questions;
             var answerRecords = aMessage.AnswerRecords ?? new List<DnsRecordBase>();
             var ttl = (answerRecords.FirstOrDefault() ?? new ARecord(DomainName.Root, 60, IPAddress.Any)).TimeToLive;
+            if (ttl < 50) return;
             Add(new CacheItem(question.First().ToString(), (answerRecords, aMessage.ReturnCode)), ttl);
         }
 
         public static void Add(List<DnsQuestion> question, List<DnsRecordBase> answerRecords, ReturnCode rCode)
         {
             var ttl = (answerRecords.FirstOrDefault() ?? new ARecord(DomainName.Root, 60, IPAddress.Any)).TimeToLive;
+            if (ttl < 50) return;
             Add(new CacheItem(question.First().ToString(), (answerRecords, rCode)), ttl);
         }
 
