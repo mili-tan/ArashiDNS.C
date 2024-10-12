@@ -167,6 +167,19 @@ namespace ArashiDNS.C
                     return;
                 }
 
+                if (query.Questions.First().RecordClass == RecordClass.Chaos && query.Questions.First().RecordType == RecordType.Txt &&
+                    query.Questions.First().Name.IsEqualOrSubDomainOf(DomainName.Parse("version.bind")))
+                {
+                    var msg = query.CreateResponseInstance();
+                    msg.IsRecursionAllowed = true;
+                    msg.IsRecursionDesired = true;
+                    msg.AnswerRecords.Add(
+                        new TxtRecord(query.Questions.First().Name, 3600, "ArashiDNS.C"));
+                    e.Response = msg;
+
+                    return;
+                }
+
                 var quest = query.Questions.First();
 
                 if (quest.RecordType == RecordType.Any &&
