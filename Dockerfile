@@ -9,10 +9,10 @@ COPY ["ArashiDNS.C.csproj", "."]
 RUN dotnet restore "./ArashiDNS.C.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "ArashiDNS.C.csproj" -c Release -o /app/build /p:UseAppHost=true /p:PublishAot=false
+RUN dotnet build "ArashiDNS.C.csproj" -c Release -o /app/build /p:UseAppHost=true /p:PublishAot=false /p:PublishSingleFile=false
 
 FROM build AS publish
-RUN dotnet publish "ArashiDNS.C.csproj" -c Release -o /app/publish /p:UseAppHost=true /p:PublishAot=false
+RUN dotnet publish "ArashiDNS.C.csproj" -c Release -o /app/publish /p:UseAppHost=true /p:PublishAot=false /p:PublishSingleFile=false
 
 FROM base AS final
 WORKDIR /app
