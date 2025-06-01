@@ -180,6 +180,17 @@ namespace ArashiDNS.C
                     return;
                 }
 
+                if (query.Questions.First().Name.IsEqualOrSubDomainOf(DomainName.Parse("use-application-dns.net")))
+                {
+                    var msg = query.CreateResponseInstance();
+                    msg.IsRecursionAllowed = true;
+                    msg.IsRecursionDesired = true;
+                    msg.ReturnCode = ReturnCode.NoError;
+                    msg.AnswerRecords = new List<DnsRecordBase>();
+                    e.Response = msg;
+                    return;
+                }
+
                 var quest = query.Questions.First();
 
                 if (quest.RecordType == RecordType.Any &&
