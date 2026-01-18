@@ -29,7 +29,7 @@ namespace ArashiDNS.C
         public static DomainName BackupServerDomain = DomainName.Parse("dns.quad9.net");
         public static IPAddress StartupDnsAddress = IPAddress.Parse("8.8.8.8");
         public static IPAddress LanDnsAddress = IPAddress.Parse("8.8.8.8");
-        public static IPEndPoint ListenerEndPoint = new(IPAddress.Loopback, 15353);
+        public static IPEndPoint ListenerEndPoint = new(IPAddress.Any, 15353);
 
         public static List<DomainName> ReverseLanDomains = new()
         {
@@ -187,6 +187,17 @@ namespace ArashiDNS.C
                     msg.IsRecursionDesired = true;
                     msg.ReturnCode = ReturnCode.NoError;
                     msg.AnswerRecords = new List<DnsRecordBase>();
+
+                    var infoBytes = BitConverter.GetBytes((ushort)17);
+                    var textBytes = "ArashiDNS.C: Prevents unexpected DoH upgrade"u8.ToArray();
+                    if (BitConverter.IsLittleEndian) Array.Reverse(infoBytes);
+                    var payload = new byte[infoBytes.Length + textBytes.Length];
+                    Buffer.BlockCopy(infoBytes, 0, payload, 0, infoBytes.Length);
+                    if (textBytes.Length > 0)
+                        Buffer.BlockCopy(textBytes, 0, payload, infoBytes.Length, textBytes.Length);
+                    msg.EDnsOptions ??= new OptRecord();
+                    msg.EDnsOptions.Options.Add(new UnknownOption((EDnsOptionType)15, payload));
+
                     e.Response = msg;
                     return;
                 }
