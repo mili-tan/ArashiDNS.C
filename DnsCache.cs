@@ -11,15 +11,15 @@ namespace ArashiDNS
         {
             if (aMessage.ReturnCode == ReturnCode.ServerFailure) return;
             var question = qMessage.Questions;
-            var answerRecords = aMessage.AnswerRecords ?? new List<DnsRecordBase>();
-            var ttl = (answerRecords.FirstOrDefault() ?? new ARecord(DomainName.Root, 60, IPAddress.Any)).TimeToLive;
+            var answerRecords = aMessage.AnswerRecords;
+            var ttl = answerRecords.Any() ? answerRecords.Min(x => x.TimeToLive) : 50;
             if (ttl < 50) return;
             Add(new CacheItem(question.First().ToString(), (answerRecords, aMessage.ReturnCode)), ttl);
         }
 
         public static void Add(List<DnsQuestion> question, List<DnsRecordBase> answerRecords, ReturnCode rCode)
         {
-            var ttl = (answerRecords.FirstOrDefault() ?? new ARecord(DomainName.Root, 60, IPAddress.Any)).TimeToLive;
+            var ttl = answerRecords.Any() ? answerRecords.Min(x => x.TimeToLive) : 50;
             if (ttl < 50) return;
             Add(new CacheItem(question.First().ToString(), (answerRecords, rCode)), ttl);
         }
